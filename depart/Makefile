@@ -26,6 +26,9 @@ DEPS      := $(wildcard $(OBJ_DIR)/*.d)
 # --- Règles principales ---
 .PHONY: all clean fclean re
 
+# Garde les .o dans obj/ (sinon make les supprime comme "intermédiaires")
+.SECONDARY:
+
 # Règle par défaut
 all: $(TARGETS)
 
