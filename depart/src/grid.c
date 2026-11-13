@@ -65,17 +65,31 @@ char* tirer_symbole(Frequences* freq) {
     return freq->symbole[freq->nb - 1];
 }
 
+int creer_grille(Grille* g, int hauteur, int largeur) {
+    g->hauteur = hauteur;
+    g->largeur = largeur;
+    g->cases = malloc(hauteur * largeur * sizeof(Case));
+    if (g->cases == NULL) {
+        return 1;
+    }
+    return 0;
+}
+
+void liberer_grille(Grille* g) {
+    free(g->cases);
+}
+
 void remplir_grille(Grille* g, Frequences* freq) {
     int nb_cases = g->hauteur * g->largeur;
     for (int i = 0; i < nb_cases; i++) {
-        strcpy(g->cases[i], tirer_symbole(freq));
+        strcpy(g->cases[i].lettres, tirer_symbole(freq));
     }
 }
 
 void afficher_grille(Grille* g) {
     int nb_cases = g->hauteur * g->largeur;
     for (int i = 0; i < nb_cases; i++) {
-        printf("%s", g->cases[i]);
+        printf("%s", g->cases[i].lettres);
         if (i < nb_cases - 1) {
             printf(" ");
         }
@@ -87,21 +101,26 @@ int lire_grille(Grille* g, char* args[], int nb_args) {
     if (nb_args < 2) {
         return 1;
     }
-    if (sscanf(args[0], "%d", &g->hauteur) != 1 || sscanf(args[1], "%d", &g->largeur) != 1) {
+    int hauteur, largeur;
+    if (sscanf(args[0], "%d", &hauteur) != 1 || sscanf(args[1], "%d", &largeur) != 1) {
         return 1;
     }
-    if (g->hauteur <= 0 || g->largeur <= 0 || g->hauteur * g->largeur > MAX_CASES) {
+    if (hauteur <= 0 || largeur <= 0) {
         return 1;
     }
-    int nb_cases = g->hauteur * g->largeur;
+    int nb_cases = hauteur * largeur;
     if (nb_args - 2 != nb_cases) {   /* il doit y avoir exactement hauteur*largeur cases */
+        return 1;
+    }
+    if (creer_grille(g, hauteur, largeur) != 0) {
         return 1;
     }
     for (int i = 0; i < nb_cases; i++) {
         if (!symbole_correct(args[2 + i])) {
+            liberer_grille(g);
             return 1;
         }
-        strcpy(g->cases[i], args[2 + i]);
+        strcpy(g->cases[i].lettres, args[2 + i]);
     }
     return 0;
 }
