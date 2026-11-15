@@ -26,11 +26,11 @@ int main(int argc, char* argv[]) {
     int hauteur, largeur;
     if (sscanf(argv[2], "%d", &hauteur) != 1 || sscanf(argv[3], "%d", &largeur) != 1) {
         printf("Erreur : la hauteur et la largeur doivent etre des nombres.\n");
-        return 254;
+        return 255;
     }
     if (hauteur <= 0 || largeur <= 0) {
         printf("Erreur : dimensions incorrectes.\n");
-        return 254;
+        return 255;
     }
 
     Frequences freq;
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
     }
     if (resultat == 2) {
         printf("Erreur : fichier de frequences mal ecrit.\n");
-        return 252;
+        return 253;
     }
 
     Grille g;
