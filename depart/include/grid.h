@@ -52,3 +52,5 @@ void afficher_grille(Grille* g);
  * La grille est allouée : il faudra appeler liberer_grille à la fin.
  * Renvoie 0 si tout va bien, 1 si les arguments sont incorrects. */
 int lire_grille(Grille* g, char* args[], int nb_args);
+
+int voisines(Grille* g, int a, int b);

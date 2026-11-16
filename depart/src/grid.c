@@ -3,8 +3,7 @@
 #include <string.h>
 #include "grid.h"
 
-/* Renvoie 1 si le mot contient 1 ou 2 lettres majuscules (ex: "A", "QU"),
- * 0 sinon. */
+
 int symbole_correct(char* mot) {
     int longueur = strlen(mot);
     if (longueur < 1 || longueur > 2) {
@@ -42,19 +41,14 @@ int lire_frequences(char* nom_fichier, Frequences* freq) {
     }
     fclose(fichier);
 
-    if (freq->total == 0) {   /* fichier vide */
+    if (freq->total == 0) {   
         return 2;
     }
     return 0;
 }
 
 char* tirer_symbole(Frequences* freq) {
-    /* On tire un nombre entre 0 et total-1.
-     * Exemple avec A 36, B 5, C 15 (total = 56) :
-     *   de 0 à 35  -> A
-     *   de 36 à 40 -> B
-     *   de 41 à 55 -> C
-     * Plus le poids est grand, plus la lettre a de chances de sortir. */
+    
     int r = rand() % freq->total;
     for (int i = 0; i < freq->nb; i++) {
         if (r < freq->poids[i]) {
@@ -109,7 +103,7 @@ int lire_grille(Grille* g, char* args[], int nb_args) {
         return 1;
     }
     int nb_cases = hauteur * largeur;
-    if (nb_args - 2 != nb_cases) {   /* il doit y avoir exactement hauteur*largeur cases */
+    if (nb_args - 2 != nb_cases) {  
         return 1;
     }
     if (creer_grille(g, hauteur, largeur) != 0) {
@@ -122,5 +116,23 @@ int lire_grille(Grille* g, char* args[], int nb_args) {
         }
         strcpy(g->cases[i].lettres, args[2 + i]);
     }
+    return 0;
+
+}
+
+int voisines(Grille* g, int a, int b) {
+
+    int ligne_a = a / g->largeur;
+    int colonne_a = a % g->largeur;
+    int ligne_b = b / g->largeur;
+    int colonne_b = b % g->largeur;
+    if (a == b){
+        return 0;
+    }
+    int ecart_lignes = ligne_a - ligne_b;
+    int ecart_colonnes = colonne_a - colonne_b;
+    if (ecart_lignes >= -1 && ecart_lignes <= 1 && ecart_colonnes >= -1 && ecart_colonnes <= 1) {
+        return 1;}//eviter que les cases soient prises pour voisines alors que non
+    
     return 0;
 }
