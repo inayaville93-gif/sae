@@ -54,3 +54,4 @@ void afficher_grille(Grille* g);
 int lire_grille(Grille* g, char* args[], int nb_args);
 
 int voisines(Grille* g, int a, int b);
+int chercher_mot(Grille* g, char* mot, int c, int visite[], int chemin[], int etape);

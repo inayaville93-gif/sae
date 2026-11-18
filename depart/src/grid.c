@@ -136,3 +136,33 @@ int voisines(Grille* g, int a, int b) {
     
     return 0;
 }
+
+int chercher_mot(Grille* g, char* mot, int c, int visite[], int chemin[],int etape){
+    char* lettres = g->cases[c].lettres; //lettre qui se trouve dans la case de la grille
+    int taille = strlen(lettres); //nb de lettre
+
+    for (int i = 0; i < taille; i++){
+        if (mot[i] != lettres[i]){
+            return 0;
+        }
+    }
+    visite[c] = 1;
+    chemin[etape]= c;
+
+    char* suivant = mot + taille;
+    if (suivant[0] == 0){ //plus de lettres donc mot trouvé
+        return etape + 1; //nb de cases dans le chemin
+    }
+
+    int nb_cases = g->hauteur * g-> largeur;
+    for (int j = 0; j <nb_cases; j++){ //on regarde les cases voisines libre
+        if (voisines(g,c,j) && visite[j] == 0){
+            int result = chercher_mot(g,suivant,j,visite,chemin,etape + 1);
+            if (result != 0){
+                return result;
+            }
+        }
+    }
+    visite[c] =0; //on libere
+    return 0;
+}
