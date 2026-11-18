@@ -6,6 +6,5 @@ BONSOIR ## un commentaire
 OUI
 QUE
 VIE
- cette ligne commence par un espace : elle est ignoree
 VIRE
 TOIT
