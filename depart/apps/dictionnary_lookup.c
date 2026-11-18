@@ -20,13 +20,20 @@ int main(int argc, char* argv[]) {
         return 255;
     }
 
-    Dico d;
-    if (lire_dico_lex(argv[1], &d) != 0) {
-        printf("Erreur : fichier %s introuvable ou incorrect.\n", argv[1]);
+    FILE* f = fopen(argv[1], "rb");
+    if (f == NULL) {
+        printf("Erreur : fichier %s introuvable.\n", argv[1]);
+        return 254;
+    }
+    /* on lit seulement l'en-tête ; les cellules seront lues une par une */
+    Header h = readHeader(f);
+    if (h.headerSize != sizeof(Header) || h.cellSize != sizeof(Cell)) {
+        printf("Erreur : fichier %s incorrect.\n", argv[1]);
+        fclose(f);
         return 254;
     }
 
-    int resultat = chercher_dico(&d, argv[2]);
-    liberer_dico(&d);
+    int resultat = lookupWord(f, h, argv[2]);
+    fclose(f);
     return resultat;
 }

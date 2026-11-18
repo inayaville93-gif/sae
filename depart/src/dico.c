@@ -3,93 +3,64 @@
 #include <string.h>
 #include "dico.h"
 
-int creer_dico(Dico* d) {
-    d->nb_mots = 0;
-    d->capacite = 1000;   /* on commence avec 1000 places, on agrandira si besoin */
-    d->cellules = malloc(d->capacite * sizeof(Cellule));
-    if (d->cellules == NULL) {
-        return 1;
+/* =====================================================================
+ *  PARTIE 1 : construire l'arbre en mémoire (TP Arbres Lexicographiques)
+ * ===================================================================== */
+
+Trie newTrieNode(char elem) {
+    Trie a = malloc(sizeof(TrieNode));
+    if (a == NULL) {
+        return NULL;
     }
-    /* la cellule 0 est la racine : elle ne contient pas de lettre.
-     * memset met tous les octets à 0 (y compris les octets "de remplissage"
-     * que le compilateur ajoute dans la structure), pour écrire un fichier propre */
-    memset(&d->cellules[0], 0, sizeof(Cellule));
-    d->cellules[0].lettre = '\0';
-    d->cellules[0].fin_de_mot = 0;
-    d->cellules[0].fils = -1;
-    d->cellules[0].frere = -1;
-    d->nb_cellules = 1;
-    return 0;
+    a->elem = elem;
+    a->num = NONE;
+    a->fils = NULL;
+    a->frere = NULL;
+    return a;
 }
 
-void liberer_dico(Dico* d) {
-    free(d->cellules);
+Trie lookupInsert(Trie* t, char x) {
+    /* on parcourt t et ses frères */
+    while (*t != NULL) {
+        if ((*t)->elem == x) {
+            return *t;            /* trouvé */
+        }
+        t = &((*t)->frere);       /* on passe au frère suivant */
+    }
+    /* pas trouvé : *t est le "frere" vide du dernier noeud (ou l'arbre vide),
+     * on y accroche un nouveau noeud */
+    *t = newTrieNode(x);
+    return *t;
 }
 
-/* Ajoute une nouvelle cellule à la fin du tableau et renvoie son indice
- * (ou -1 si la mémoire manque). Si le tableau est plein, on double sa taille
- * avec realloc. */
-int nouvelle_cellule(Dico* d, char lettre) {
-    if (d->nb_cellules == d->capacite) {
-        int nouvelle_capacite = d->capacite * 2;
-        Cellule* nouveau = realloc(d->cellules, nouvelle_capacite * sizeof(Cellule));
-        if (nouveau == NULL) {
+int insertString(Trie* t, char* s) {
+    /* on descend lettre par lettre, '\0' compris (c'est la marque de fin de mot) */
+    int i = 0;
+    while (1) {
+        Trie noeud = lookupInsert(t, s[i]);
+        if (noeud == NULL) {
             return -1;
         }
-        d->cellules = nouveau;
-        d->capacite = nouvelle_capacite;
+        if (s[i] == '\0') {
+            break;                /* on vient de traiter la fin du mot */
+        }
+        t = &(noeud->fils);       /* lettre suivante : on descend dans les fils */
+        i++;
     }
-    int i = d->nb_cellules;
-    memset(&d->cellules[i], 0, sizeof(Cellule));
-    d->cellules[i].lettre = lettre;
-    d->cellules[i].fin_de_mot = 0;
-    d->cellules[i].fils = -1;
-    d->cellules[i].frere = -1;
-    d->nb_cellules = d->nb_cellules + 1;
-    return i;
+    return 1;
 }
 
-/* Cherche, parmi les fils de la cellule "parent", celui qui contient "lettre".
- * Renvoie son indice, ou -1 s'il n'existe pas. */
-int trouver_fils(Dico* d, int parent, char lettre) {
-    int c = d->cellules[parent].fils;     /* premier fils */
-    while (c != -1) {
-        if (d->cellules[c].lettre == lettre) {
-            return c;
-        }
-        c = d->cellules[c].frere;          /* on passe au frère suivant */
+void freeTrie(Trie t) {
+    if (t == NULL) {
+        return;
     }
-    return -1;
-}
-
-int ajouter_mot(Dico* d, char* mot) {
-    int courant = 0;    /* on part de la racine */
-    for (int i = 0; mot[i] != '\0'; i++) {
-        int suivant = trouver_fils(d, courant, mot[i]);
-        if (suivant == -1) {
-            /* la lettre n'existe pas encore à cet endroit : on la crée */
-            suivant = nouvelle_cellule(d, mot[i]);
-            if (suivant == -1) {
-                return 1;
-            }
-            /* on la place en tête de la liste des fils de "courant" :
-             * son frère devient l'ancien premier fils */
-            d->cellules[suivant].frere = d->cellules[courant].fils;
-            d->cellules[courant].fils = suivant;
-        }
-        courant = suivant;   /* on descend d'un niveau */
-    }
-    /* on est sur la dernière lettre : on marque la fin du mot
-     * (sauf s'il était déjà dans le dictionnaire, pour ne pas le compter 2 fois) */
-    if (d->cellules[courant].fin_de_mot == 0) {
-        d->cellules[courant].fin_de_mot = 1;
-        d->nb_mots = d->nb_mots + 1;
-    }
-    return 0;
+    freeTrie(t->fils);
+    freeTrie(t->frere);
+    free(t);
 }
 
 /* Renvoie 1 si le mot ne contient que des lettres A-Z (et au moins une), 0 sinon. */
-int mot_correct(char* mot) {
+int motCorrect(char* mot) {
     if (mot[0] == '\0') {
         return 0;
     }
@@ -101,15 +72,32 @@ int mot_correct(char* mot) {
     return 1;
 }
 
-int lire_dico_txt(char* nom_fichier, Dico* d) {
+/* Renvoie 1 si le mot s est dans le Trie (utilisé pour ne pas compter
+ * deux fois un mot en double dans le .txt), 0 sinon. */
+int containsString(Trie t, char* s) {
+    int i = 0;
+    while (1) {
+        while (t != NULL && t->elem != s[i]) {
+            t = t->frere;
+        }
+        if (t == NULL) {
+            return 0;
+        }
+        if (s[i] == '\0') {
+            return 1;
+        }
+        t = t->fils;
+        i++;
+    }
+}
+
+int readDictionary(char* nom_fichier, Trie* t, int* nb_mots) {
     FILE* fichier = fopen(nom_fichier, "r");
     if (fichier == NULL) {
         return 1;
     }
-    if (creer_dico(d) != 0) {
-        fclose(fichier);
-        return 2;
-    }
+    *t = NULL;
+    *nb_mots = 0;
 
     char ligne[256];
     char mot[256];
@@ -118,84 +106,135 @@ int lire_dico_txt(char* nom_fichier, Dico* d) {
         if (ligne[0] == ' ') {
             continue;
         }
-        /* on garde seulement le premier mot de la ligne (le reste = commentaire) */
+        /* on garde le premier mot de la ligne, le reste est un commentaire */
         if (sscanf(ligne, "%255s", mot) != 1) {
-            continue;   /* ligne vide */
+            continue;             /* ligne vide */
         }
-        if (!mot_correct(mot)) {
-            continue;   /* mot avec accent, minuscule... : on l'ignore */
+        if (!motCorrect(mot)) {
+            continue;             /* accents, minuscules... : ignoré */
         }
-        if (ajouter_mot(d, mot) != 0) {
+        if (containsString(*t, mot)) {
+            continue;             /* mot déjà présent */
+        }
+        if (insertString(t, mot) == -1) {
             fclose(fichier);
-            liberer_dico(d);
+            freeTrie(*t);
             return 2;
         }
+        *nb_mots = *nb_mots + 1;
     }
     fclose(fichier);
     return 0;
 }
 
-int ecrire_dico_lex(char* nom_fichier, Dico* d) {
-    FILE* fichier = fopen(nom_fichier, "wb");   /* "wb" = écriture en binaire */
-    if (fichier == NULL) {
-        return 1;
-    }
-    Entete e;
-    e.taille_entete = sizeof(Entete);
-    e.nb_mots = d->nb_mots;
-    e.nb_cellules = d->nb_cellules;
-    e.taille_cellule = sizeof(Cellule);
+/* =====================================================================
+ *  PARTIE 2 : écrire l'arbre dans le fichier .lex (TP Arbres Statiques)
+ * ===================================================================== */
 
-    /* fwrite(adresse, taille d'un élément, nombre d'éléments, fichier) */
-    fwrite(&e, sizeof(Entete), 1, fichier);
-    fwrite(d->cellules, sizeof(Cellule), d->nb_cellules, fichier);
-    fclose(fichier);
-    return 0;
+int setNums(Trie t, int rootNumber) {
+    if (t == NULL) {
+        return 0;
+    }
+    /* parcours préfixe : d'abord le noeud, puis ses fils, puis ses frères */
+    t->num = rootNumber;
+    int taille_fils = setNums(t->fils, rootNumber + 1);
+    int taille_freres = setNums(t->frere, rootNumber + 1 + taille_fils);
+    return 1 + taille_fils + taille_freres;
 }
 
-int lire_dico_lex(char* nom_fichier, Dico* d) {
-    FILE* fichier = fopen(nom_fichier, "rb");   /* "rb" = lecture en binaire */
-    if (fichier == NULL) {
-        return 1;
+/* Écrit les noeuds dans le fichier, dans le même ordre que setNums. */
+void subtreeSave(Trie t, FILE* f) {
+    if (t == NULL) {
+        return;
     }
-    Entete e;
-    if (fread(&e, sizeof(Entete), 1, fichier) != 1) {
-        fclose(fichier);
-        return 2;
+    Cell c;
+    memset(&c, 0, sizeof(Cell));   /* met aussi à 0 les octets de "remplissage" */
+    c.elem = t->elem;
+    c.fils = NONE;
+    c.frere = NONE;
+    if (t->fils != NULL) {
+        c.fils = t->fils->num;
     }
-    /* on vérifie que le fichier a bien été créé avec les mêmes structures */
-    if (e.taille_entete != sizeof(Entete) || e.taille_cellule != sizeof(Cellule)
-            || e.nb_cellules < 1) {
-        fclose(fichier);
-        return 2;
+    if (t->frere != NULL) {
+        c.frere = t->frere->num;
     }
-    d->nb_mots = e.nb_mots;
-    d->nb_cellules = e.nb_cellules;
-    d->capacite = e.nb_cellules;
-    d->cellules = malloc(e.nb_cellules * sizeof(Cellule));
-    if (d->cellules == NULL) {
-        fclose(fichier);
-        return 2;
-    }
-    if ((int) fread(d->cellules, sizeof(Cellule), e.nb_cellules, fichier) != e.nb_cellules) {
-        fclose(fichier);
-        free(d->cellules);
-        return 2;
-    }
-    fclose(fichier);
-    return 0;
+    fwrite(&c, sizeof(Cell), 1, f);
+    subtreeSave(t->fils, f);
+    subtreeSave(t->frere, f);
 }
 
-int chercher_dico(Dico* d, char* mot) {
-    int courant = 0;    /* on part de la racine */
-    for (int i = 0; mot[i] != '\0'; i++) {
-        courant = trouver_fils(d, courant, mot[i]);
-        if (courant == -1) {
-            return 2;   /* la lettre n'existe pas à cet endroit : ni mot, ni préfixe */
+int treeSave(Trie t, int nb_mots, char* nom_fichier) {
+    FILE* f = fopen(nom_fichier, "wb");   /* "wb" = écriture en binaire */
+    if (f == NULL) {
+        return 0;
+    }
+    Header h;
+    h.headerSize = sizeof(Header);
+    h.wordCount = nb_mots;
+    h.cellCount = setNums(t, 0);          /* la racine a le numéro 0 */
+    h.cellSize = sizeof(Cell);
+
+    fwrite(&h, sizeof(Header), 1, f);
+    subtreeSave(t, f);
+    fclose(f);
+    return 1;
+}
+
+/* =====================================================================
+ *  PARTIE 3 : lire le fichier .lex sans tout charger (TP Arbres Statiques)
+ * ===================================================================== */
+
+Header readHeader(FILE* f) {
+    Header h;
+    fseek(f, 0, SEEK_SET);                /* l'en-tête est au tout début */
+    if (fread(&h, sizeof(Header), 1, f) != 1) {
+        h.headerSize = 0;                 /* lecture ratée : en-tête invalide */
+        h.wordCount = 0;
+        h.cellCount = 0;
+        h.cellSize = 0;
+    }
+    return h;
+}
+
+Cell readCell(FILE* f, Header h, int num) {
+    Cell c;
+    /* la cellule num se trouve après l'en-tête et les num cellules précédentes */
+    long position = h.headerSize + (long) num * h.cellSize;
+    fseek(f, position, SEEK_SET);
+    if (fread(&c, sizeof(Cell), 1, f) != 1) {
+        c.elem = '\0';
+        c.fils = NONE;
+        c.frere = NONE;
+    }
+    return c;
+}
+
+int findSibling(FILE* f, Header h, int num, char x) {
+    while (num != NONE) {
+        Cell c = readCell(f, h, num);
+        if (c.elem == x) {
+            return num;
         }
+        num = c.frere;                    /* on passe au frère suivant */
     }
-    if (d->cellules[courant].fin_de_mot == 1) {
-        return 0;       /* un mot se termine ici */
+    return NONE;
+}
+
+int lookupWord(FILE* f, Header h, char* mot) {
+    if (h.cellCount == 0) {
+        return 2;                         /* dictionnaire vide */
     }
-    return 1;           /* on a pu suivre toutes les lettres, mais aucun mot ne finit ici */
+    int num = 0;                          /* on part de la racine */
+    for (int i = 0; mot[i] != '\0'; i++) {
+        num = findSibling(f, h, num, mot[i]);
+        if (num == NONE) {
+            return 2;                     /* la lettre n'existe pas à cet endroit */
+        }
+        num = readCell(f, h, num).fils;   /* on descend vers la lettre suivante */
+    }
+    /* on a suivi toutes les lettres : y a-t-il une fin de mot '\0' ici ? */
+    if (findSibling(f, h, num, '\0') != NONE) {
+        return 0;
+    }
+    return 1;
 }
