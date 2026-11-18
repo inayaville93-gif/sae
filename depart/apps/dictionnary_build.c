@@ -2,14 +2,6 @@
 #include <string.h>
 #include "dico.h"
 
-/* Utilisation : dictionnary_build dico.txt dico.lex
- * Valeurs de sortie :
- *   0   : tout va bien
- *   255 : mauvais nombre d'arguments
- *   254 : fichier .txt introuvable
- *   253 : impossible de créer le fichier .lex
- *   252 : plus de mémoire
- */
 int main(int argc, char* argv[]) {
     if (argc == 2 && strcmp("author", argv[1]) == 0) {
         printf("Auteur: Inaya Hamdaoui\n");
