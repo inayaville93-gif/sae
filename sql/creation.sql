@@ -26,3 +26,11 @@ CREATE TABLE jouer(
    FOREIGN KEY(id_user) REFERENCES Utilisateur(id_user),
    FOREIGN KEY(id_partie) REFERENCES Partie(id_partie)
 );
+
+CREATE INDEX idx_partie_donnees ON Partie USING GIN (donnees);
+CREATE INDEX idx_jouer_partie ON jouer (id_partie);
+
+CREATE INDEX idx_jouer_partie ON jouer (id_partie);
+
+/* type GIN pour ranger cle et valeur dans JSON (plein de valeur possible dans ce type dindex)*/
+/* et ca sert a cherhcer + vite avc loperateur @> (contient v ou f)*/
